@@ -15,6 +15,12 @@
         button:hover { background-color: #0056b3; }
         .row { display: flex; gap: 10px; }
         .row .col { flex: 1; }
+        
+        .result-box { margin-top: 25px; background: #f8f9fa; border: 1px dashed #007bff; padding: 15px; border-radius: 8px; }
+        .result-title { font-weight: bold; color: #333; margin-top: 10px; font-size: 13px; }
+        .output-text { background: #fff; padding: 10px; border: 1px solid #ddd; border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 13px; color: #333; max-height: 150px; overflow-y: auto; }
+        .copy-btn { background-color: #28a745; margin-top: 5px; padding: 6px 12px; font-size: 12px; width: auto; display: inline-block; }
+        .copy-btn:hover { background-color: #218838; }
     </style>
 </head>
 <body>
@@ -40,18 +46,22 @@
     </div>
 
     <label>লাইন ম্যানেজারের নাম (Line Manager Name):</label>
-    <input type="text" id="managerName" placeholder="Md. Ali Akbar">
+    <!-- এখানে ভ্যালু হিসেবে Md. Junayed Mia সেট করে দেওয়া হয়েছে -->
+    <input type="text" id="managerName" value="Md. Junayed Mia">
 
     <div class="row">
         <div class="col">
-            <label>ছুটির তারিখ (Leave Date):</label>
-            <input type="text" id="leaveDate" placeholder="25 Mar 2026">
+            <label>ছুটি শুরু (Start Date):</label>
+            <input type="text" id="startDate" placeholder="07 April 2026">
         </div>
         <div class="col">
-            <label>দিনের সংখ্যা (Duration):</label>
-            <input type="text" id="duration" value="01 Day">
+            <label>ছুটি শেষ (End Date):</label>
+            <input type="text" id="endDate" placeholder="08 April 2026">
         </div>
     </div>
+
+    <label>দিনের সংখ্যা (Duration):</label>
+    <input type="text" id="duration" placeholder="যেমন: 01 Day / 02 Days">
 
     <label>লিভ রিলীভারের নাম ও আইডি (Reliever Name & ID):</label>
     <input type="text" id="relieverName" placeholder="Md.Mehedi Hasan (C 2892)">
@@ -59,7 +69,20 @@
     <label>ছুটি নেওয়ার কারণ (Reason in English):</label>
     <textarea id="reason" rows="3" placeholder="fever, body pain"></textarea>
 
-    <button onclick="generateMail()">Generate & Send Mail</button>
+    <button onclick="generateMail()">Click Here to Generate Mail</button>
+
+    <div class="result-box">
+        <h3 style="margin-top:0; font-size: 16px; color: #007bff;">Generated Mail Preview</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">(ফরম পূরণ করে উপরের বাটনে চাপ দিলে এখানে লেখা ভেসে উঠবে)</p>
+        
+        <div class="result-title">Subject:</div>
+        <div id="outSubject" class="output-text">এখানে সাবজেক্ট আসবে...</div>
+        <button class="copy-btn" onclick="copyTxt('outSubject')">Copy Subject</button>
+
+        <div class="result-title">Mail Body:</div>
+        <div id="outBody" class="output-text">এখানে মেইল বডি আসবে...</div>
+        <button class="copy-btn" onclick="copyTxt('outBody')">Copy Body</button>
+    </div>
 </div>
 
 <script>
@@ -68,17 +91,17 @@ function generateMail() {
     var name = document.getElementById('name').value.trim();
     var empId = document.getElementById('empId').value.trim();
     var managerName = document.getElementById('managerName').value.trim();
-    var leaveDate = document.getElementById('leaveDate').value.trim();
+    var startDate = document.getElementById('startDate').value.trim();
+    var endDate = document.getElementById('endDate').value.trim();
     var duration = document.getElementById('duration').value.trim();
     var relieverName = document.getElementById('relieverName').value.trim();
     var reason = document.getElementById('reason').value.trim();
 
-    if(!name || !empId || !managerName || !leaveDate || !relieverName || !reason) {
+    if(!name || !empId || !managerName || !startDate || !endDate || !duration || !relieverName || !reason) {
         alert("দয়া করে সব ঘর সঠিকভাবে পূরণ করুন!");
         return;
     }
 
-    // আজকের তারিখ অটো বের করার নিখুঁত লজিক (Format: DD MMM YYYY)
     var today = new Date();
     var day = String(today.getDate()).padStart(2, '0');
     var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -86,7 +109,6 @@ function generateMail() {
     var year = today.getFullYear();
     var autoCurrentDate = day + " " + month + " " + year;
 
-    // To এবং CC ইমেইল এড্রেস
     var toEmail = "ali@pathao.com"; 
     var ccEmails = "junayed@pathao.com,hr@pathao.com,shuvo@pathao.com,sabbir@pathao.com";
 
@@ -101,27 +123,49 @@ function generateMail() {
         bodyLeaveType = "LWP (Leave Without Pay)";
     }
 
-    // সাবজেক্ট লাইন (আপনার ছবি image_ea24e1.png এবং রুলস অনুযায়ী)
     var subjectStr = "Leave Application || " + subjectLeaveType + " || " + empId + " || " + name + " || CISD || " + autoCurrentDate;
-    var subject = encodeURIComponent(subjectStr);
     
-    // মেইল বডি (ইনপুট দেওয়া ডেটা হুবহু নিচে বসে যাবে)
+    var dateTextFirstLine = "";
+    var dateTextDetailLine = "";
+    
+    if (startDate === endDate) {
+        dateTextFirstLine = "on " + startDate;
+        dateTextDetailLine = startDate;
+    } else {
+        dateTextFirstLine = "from " + startDate + " to " + endDate;
+        dateTextDetailLine = startDate + " to " + endDate;
+    }
+    
     var bodyStr = "Dear +" + managerName + " Bhai,\n\n" +
-                  "I hope you are doing well. I would like to inform you that on " + leaveDate + ", I was unable to attend work due to " + reason + ". My condition required complete rest, which was necessary for my recovery.\n\n" +
+                  "I hope you are doing well. I would like to inform you that " + dateTextFirstLine + ", I was unable to attend work due to " + reason + ". My condition required complete rest, which was necessary for my recovery.\n\n" +
                   "Therefore, I sincerely request you to kindly consider my situation and approve my leave for the mentioned date.\n\n" +
                   "ID: " + empId + "\n" +
                   "Name: " + name + "\n" +
                   "Line Manager Name: " + managerName + ".\n" +
                   "Leave Type: " + bodyLeaveType + "\n" +
-                  "Leave Date from: " + leaveDate + "\n" +
+                  "Leave Date from: " + dateTextDetailLine + "\n" +
                   "Leave Duration: " + duration + ".\n" +
                   "Leave Reliever Name: " + relieverName + "\n" +
                   "Reason for leaving: " + reason.charAt(0).toUpperCase() + reason.slice(1) + ".";
 
-    var body = encodeURIComponent(bodyStr);
+    document.getElementById('outSubject').innerText = subjectStr;
+    document.getElementById('outBody').innerText = bodyStr;
 
-    // মেইল অ্যাপ ওপেন করার অ্যাকশন
-    window.location.href = "mailto:" + toEmail + "?cc=" + ccEmails + "&subject=" + subject + "&body=" + body;
+    alert("মেইল সফলভাবে তৈরি হয়েছে! নিচে কপি করার বাটন চলে এসেছে।");
+
+    var mailtoUrl = "mailto:" + toEmail + "?cc=" + ccEmails + "&subject=" + encodeURIComponent(subjectStr) + "&body=" + encodeURIComponent(bodyStr);
+    window.location.href = mailtoUrl;
+}
+
+function copyTxt(elementId) {
+    var text = document.getElementById(elementId).innerText;
+    var elem = document.createElement("textarea");
+    document.body.appendChild(elem);
+    elem.value = text;
+    elem.select();
+    document.execCommand("copy");
+    document.body.removeChild(elem);
+    alert("কপি হয়েছে!");
 }
 </script>
 
