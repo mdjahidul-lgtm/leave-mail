@@ -30,7 +30,7 @@
     
     <label>ছুটির ধরন (Leave Type):</label>
     <select id="leaveType">
-        <option value="Leave">Regular / Emergency Leave</option>
+        <option value="Leave">Emergency Leave</option>
         <option value="LWP">LWP Leave</option>
     </select>
 
@@ -65,8 +65,27 @@
     <label>লিভ রিলীভারের নাম ও আইডি (Reliever Name & ID):</label>
     <input type="text" id="relieverName" placeholder="Md.Mehedi Hasan (C 2892)">
 
-    <label>ছুটি নেওয়ার কারণ (আপনি যেভাবে ইচ্ছা বাংলিশে লিখুন):</label>
-    <textarea id="reason" rows="3" placeholder="যেমন: petbethar karone office ashte pari ni"></textarea>
+    <!-- আপনার সুবিধার্থে কারণ সিলেক্ট করার জন্য ড্রপডাউন বক্স যোগ করা হলো -->
+    <label>ছুটি নেওয়ার কারণ (Reason for Leave):</label>
+    <select id="reasonDropdown" onchange="toggleCustomReason()">
+        <option value="Fever & Body Pain">Fever & Body Pain (জ্বর ও শরীর ব্যথা)</option>
+        <option value="Stomach Pain">Stomach Pain (পেট ব্যথা)</option>
+        <option value="Family Problem">Family Problem (পারিবারিক সমস্যা)</option>
+        <option value="Personal Problem">Personal Problem (ব্যক্তিগত সমস্যা)</option>
+        <option value="Sudden Illness">Sudden Illness (হঠাৎ অসুস্থতা / সিক লিভ)</option>
+        <option value="Severe Headache">Severe Headache (প্রচণ্ড মাথা ব্যথা)</option>
+        <option value="Child's Illness">Child's Illness (বাচ্চার অসুস্থতা)</option>
+        <option value="Sister's Wedding">Sister's Wedding (বোনের বিয়ে)</option>
+        <option value="House Shifting">House Shifting (বাসা বদল)</option>
+        <option value="Emergency Travel">Emergency Travel (জরুরি গ্রামে/বাইরে যাওয়া)</option>
+        <option value="custom">Other (অন্য কোনো কারণ নিজে লিখতে চাইলে)</option>
+    </select>
+
+    <!-- 'Other' সিলেক্ট করলে নিজে লেখার জন্য লুকানো বক্স -->
+    <div id="customReasonWrapper" style="display: none; margin-top: 10px;">
+        <label>আপনার কারণটি এখানে লিখুন (English):</label>
+        <input type="text" id="customReason" placeholder="যেমন: Heavy Rain / Car Breakdown">
+    </div>
 
     <button onclick="generateMail()">Click Here to Generate Mail</button>
 
@@ -85,32 +104,15 @@
 </div>
 
 <script>
-function convertBanglishToEnglish(inputText) {
-    var text = inputText.toLowerCase().replace(/[^a-z0-9]/g, ""); 
-    
-    if (text.includes("petbetha") || text.includes("petbethar") || text.includes("stomach")) {
-        return "severe stomach ache";
+// ড্রপডাউনে অন্য কারণ (Other) সিলেক্ট করলে লেখার ইনপুট বক্স দেখানোর লজিক
+function toggleCustomReason() {
+    var dropdown = document.getElementById('reasonDropdown').value;
+    var customWrapper = document.getElementById('customReasonWrapper');
+    if (dropdown === 'custom') {
+        customWrapper.style.display = 'block';
+    } else {
+        customWrapper.style.display = 'none';
     }
-    if (text.includes("jor") || text.includes("jwor") || text.includes("fever")) {
-        return "high fever";
-    }
-    if (text.includes("mathabetha") || text.includes("headache")) {
-        return "a severe headache";
-    }
-    if (text.includes("bacchasick") || text.includes("bacchaoshustho") || text.includes("babysick")) {
-        return "my child's sudden illness";
-    }
-    if (text.includes("familyproblem") || text.includes("paribarick") || text.includes("bashaybaje")) {
-        return "an unexpected family emergency";
-    }
-    if (text.includes("dantbetha") || text.includes("toothache")) {
-        return "an acute toothache";
-    }
-    if (text.includes("bajeobostha") || text.includes("oshustho") || text.includes("sick")) {
-        return "sudden physical illness";
-    }
-    
-    return inputText;
 }
 
 function generateMail() {
@@ -122,14 +124,27 @@ function generateMail() {
     var endDate = document.getElementById('endDate').value.trim();
     var duration = document.getElementById('duration').value.trim();
     var relieverName = document.getElementById('relieverName').value.trim();
-    var rawReason = document.getElementById('reason').value.trim();
+    
+    // ড্রপডাউন থেকে কারণ নেওয়া
+    var selectedReason = document.getElementById('reasonDropdown').value;
+    var finalReason = "";
 
-    if(!name || !empId || !managerName || !startDate || !endDate || !duration || !relieverName || !rawReason) {
+    if (selectedReason === 'custom') {
+        finalReason = document.getElementById('customReason').value.trim();
+        if(!finalReason) {
+            alert("দয়া করে আপনার কারণটি টাইপ করুন!");
+            return;
+        }
+        // প্রথম অক্ষর বড় হাতের করা
+        finalReason = finalReason.charAt(0).toUpperCase() + finalReason.slice(1);
+    } else {
+        finalReason = selectedReason;
+    }
+
+    if(!name || !empId || !managerName || !startDate || !endDate || !duration || !relieverName) {
         alert("দয়া করে সব ঘর সঠিকভাবে পূরণ করুন!");
         return;
     }
-
-    var reason = convertBanglishToEnglish(rawReason);
 
     var today = new Date();
     var day = String(today.getDate()).padStart(2, '0');
@@ -146,7 +161,7 @@ function generateMail() {
     
     if(leaveTypeSelect === "Leave") {
         subjectLeaveType = "Emergency Leave";
-        bodyLeaveType = "Leave";
+        bodyLeaveType = "Emergency Leave";
     } else {
         subjectLeaveType = "LWP Leave";
         bodyLeaveType = "LWP (Leave Without Pay)";
@@ -165,9 +180,8 @@ function generateMail() {
         dateTextDetailLine = startDate + " to " + endDate;
     }
     
-    // মেইল বডির নিচের লাইনে 'Reason for leave: ' যুক্ত সুন্দর ইংরেজি বাক্য তৈরি করা হলো
     var bodyStr = "Dear +" + managerName + " Bhai,\n\n" +
-                  "I hope you are doing well. I would like to inform you that " + dateTextFirstLine + ", I was unable to attend work due to " + reason + ". My condition required complete rest, which was necessary for my recovery.\n\n" +
+                  "I hope you are doing well. I would like to inform you that " + dateTextFirstLine + ", I was unable to attend work due to " + finalReason + ". My situation requires me to take leave from my duties temporarily.\n\n" +
                   "Therefore, I sincerely request you to kindly consider my situation and approve my leave for the mentioned date.\n\n" +
                   "ID: " + empId + "\n" +
                   "Name: " + name + "\n" +
@@ -176,7 +190,7 @@ function generateMail() {
                   "Leave Date from: " + dateTextDetailLine + "\n" +
                   "Leave Duration: " + duration + ".\n" +
                   "Leave Reliever Name: " + relieverName + "\n" +
-                  "Reason for leave: I was unable to attend work due to " + reason + ".";
+                  "Reason for leave: " + finalReason + ".";
 
     document.getElementById('outSubject').innerText = subjectStr;
     document.getElementById('outBody').innerText = bodyStr;
