@@ -46,7 +46,6 @@
     </div>
 
     <label>লাইন ম্যানেজারের নাম (Line Manager Name):</label>
-    <!-- এখানে ভ্যালু হিসেবে Md. Junayed Mia সেট করে দেওয়া হয়েছে -->
     <input type="text" id="managerName" value="Md. Junayed Mia">
 
     <div class="row">
@@ -66,8 +65,8 @@
     <label>লিভ রিলীভারের নাম ও আইডি (Reliever Name & ID):</label>
     <input type="text" id="relieverName" placeholder="Md.Mehedi Hasan (C 2892)">
 
-    <label>ছুটি নেওয়ার কারণ (Reason in English):</label>
-    <textarea id="reason" rows="3" placeholder="fever, body pain"></textarea>
+    <label>ছুটি নেওয়ার কারণ (আপনি বাংলিশে লিখুন):</label>
+    <textarea id="reason" rows="3" placeholder="যেমন: pet betha, jor, matha betha, amr baccha sick"></textarea>
 
     <button onclick="generateMail()">Click Here to Generate Mail</button>
 
@@ -86,6 +85,37 @@
 </div>
 
 <script>
+// বাংলিশ থেকে ইংলিশে কনভার্ট করার ডিকশনারি ফাংশন
+function convertBanglishToEnglish(inputText) {
+    var text = inputText.toLowerCase().replace(/[^a-z0-9\s]/g, ""); // ছোট হাতের অক্ষর করা ও অতিরিক্ত চিহ্ন বাদ দেওয়া
+    
+    // কমন বাংলিশ কি-ওয়ার্ড ম্যাচিং লজিক
+    if (text.includes("pet betha") || text.includes("pet betha karone") || text.includes("stomach")) {
+        return "severe stomach ache";
+    }
+    if (text.includes("jor") || text.includes("jwor") || text.includes("fever")) {
+        return "high fever";
+    }
+    if (text.includes("matha betha") || text.includes("headache")) {
+        return "a severe headache";
+    }
+    if (text.includes("baccha sick") || text.includes("baccha oshustho") || text.includes("baby sick")) {
+        return "my child's sudden illness";
+    }
+    if (text.includes("family problem") || text.includes("paribarick") || text.includes("bashay baje")) {
+        return "an unexpected family emergency";
+    }
+    if (text.includes("dant betha") || text.includes("toothache")) {
+        return "an acute toothache";
+    }
+    if (text.includes("baje obostha") || text.includes("oshustho") || text.includes("sick")) {
+        return "sudden physical illness";
+    }
+    
+    // যদি উপরে কোনটার সাথে না মিলে, তবে ইউজার যা লিখেছে সেটাই (প্রথম অক্ষর বড় করে) দেখাবে
+    return inputText;
+}
+
 function generateMail() {
     var leaveTypeSelect = document.getElementById('leaveType').value;
     var name = document.getElementById('name').value.trim();
@@ -95,13 +125,17 @@ function generateMail() {
     var endDate = document.getElementById('endDate').value.trim();
     var duration = document.getElementById('duration').value.trim();
     var relieverName = document.getElementById('relieverName').value.trim();
-    var reason = document.getElementById('reason').value.trim();
+    var rawReason = document.getElementById('reason').value.trim();
 
-    if(!name || !empId || !managerName || !startDate || !endDate || !duration || !relieverName || !reason) {
+    if(!name || !empId || !managerName || !startDate || !endDate || !duration || !relieverName || !rawReason) {
         alert("দয়া করে সব ঘর সঠিকভাবে পূরণ করুন!");
         return;
     }
 
+    // বাংলিশ কারণকে ইংলিশে রূপান্তর
+    var reason = convertBanglishToEnglish(rawReason);
+
+    // আজকের তারিখ অটো জেনারেট
     var today = new Date();
     var day = String(today.getDate()).padStart(2, '0');
     var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
